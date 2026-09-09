@@ -1,49 +1,57 @@
-# London Cycle Demand — Explore & Predict
+# London Cycle Demand
 
-English Dash application using the supplied London bikes data. Explore is implemented. Predict retrieves real weather, while hire predictions explicitly remain **Model pending** until coefficients are supplied. No model or weather API is required to run Explore.
+English Dash dashboard with Explore, Predict and Models pages. Group 2's final Model E coefficients are connected. This local revision includes model comparison; upload it to GitHub to update the existing Render service.
 
-## Run
+## Run and verify
 
 ```sh
 uv sync
 uv run python app.py
-```
-
-Open http://127.0.0.1:8050. Set `PORT` to change the port. `server = app.server` is available for a future gunicorn deployment. This project has not been deployed to Render.
-
-## Data
-
-`data/london_bikes.csv` is an unchanged copy of the user-supplied course file at `am01-code-sep2026-main/data/london_bikes.csv`.
-
-The app reads its own local copy, never silently downloads or synthesizes values. Dates are calendar labels. The analysis period is 2014–2025, defaulting to 2025. There are 4,383 unique dates in this period and no missing values in hires or the five selected weather fields in the supplied snapshot. Weekday, weekend and season are derived from dates.
-
-- All KPIs and charts use the inclusive selected date range.
-- Average daily hires = sum of valid daily hire counts / valid observed days.
-- Weekly (Monday–Sunday) and monthly series average selected observed days, including partial periods, not all days in the enclosing period.
-- Weekday means show missing weekdays as missing rather than zero.
-- Weather and colour selectors affect only the scatter; frequency affects only the trend.
-- Hover shows date, values and group; Plotly provides zoom, legend selection and chart image download.
-- Missing/infinite values are excluded per chart and counted in captions. Duplicate dates fail loading explicitly.
-- Weather units follow the course helper convention; upstream measurement definitions still require checking before connecting a forecast model.
-
-## Verify
-
-```sh
 uv run pytest -q
 ```
 
-Tests cover known source totals, daily and partial-period aggregation, missing/invalid date ranges, one-day selections, every weather/group combination, and HTTP callback execution. Weather tests cover London dates, DST boundaries, cache persistence and expiry, manual refresh, failure fallback, incomplete input rejection, CSV export, bounded retries, and Predict callbacks. Dash implementation reference: https://dash.plotly.com/basic-callbacks
+Local URL: http://127.0.0.1:8050/ . The 17 automated tests cover source totals, aggregation, callbacks, all six models against reproduced fitted values, the final coefficient calculation, missing inputs, cache/failure handling and 23/25-hour London days.
 
-## Predict weather
+## Explore
 
-- `open_meteo.py` requests Open-Meteo at a fixed central London point (51.5085, -0.1257), with `Europe/London` timezone and explicit dates and units.
-- Future weather covers tomorrow through day five. The API request supplies exact `start_date` and `end_date`, so today is excluded.
-- January 1–7, 2026 uses historical hourly reanalysis. Complete hourly coverage is validated before aggregation: precipitation is summed; the other variables are averaged.
-- All output dates and five weather fields must be complete, finite and within basic physical bounds. Invalid results never replace a valid cache.
-- Forecast TTL: one hour. History TTL: 24 hours. The page checks every minute while Predict is selected; fresh cache avoids a network call. Manual refresh bypasses TTL.
-- Failed connections, timeouts, HTTP 429 and 5xx get at most one retry. A 60-second automatic failure cooldown avoids repeated requests. Manual refresh may retry sooner.
-- Cache is in `.weather_cache/` (gitignored), with atomic file replacement and a memory fallback if writing is unavailable. Cache keys contain exact requested dates. Stale fallback retains its original fetch time and is clearly labelled. No matching cache means no weather values.
-- Weather CSV downloads include fetch time, cache status, location, timezone and model status; no hire estimates are invented.
-- Source: https://open-meteo.com/en/docs and https://open-meteo.com/en/docs/historical-weather-api . Fetch time is not a weather-model issue time. Historical reanalysis is not a genuine advance forecast backtest.
+The unchanged course dataset is `data/london_bikes.csv`. Explore covers 4,383 dates in 2014–2025, defaults to 2025 and retains zero-hire days. KPIs use observed daily counts; weekly/monthly charts average selected observed days, including partial periods. Missing values are not filled with zero. Scatter associations are not causal effects.
 
-Live verification on 9 September 2026 returned five complete days for 10–14 September and seven complete days for 1–7 January. All 12 automated tests passed. This is a local app, not a deployed Render service; browser visual QA has not been performed.
+## Models
+
+Six notebook specifications (Baseline, A–E) are reproduced on the same 4,381 rows: dates from 2014 onward and hires greater than 1. This excludes two zero-hire days. Models compares adjusted R², residual standard error, 2025 RMSE/MAE, observed/modelled monthly averages and daily residuals. Filters affect diagnostics, not the fixed summary metrics.
+
+The 2025 check fits each formula on 2014–2024 (4,016 rows) and evaluates 2025 (365 rows) using observed weather. Because formulas were selected with knowledge of the full dataset, this is a retrospective temporal check, not an untouched test or a test of advance weather forecasts. Model E changes the specification: D and E are not nested.
+
+`model_coefficients.csv` is the supplied final export, unchanged and used for E inference. Its coefficients match the notebook formula reproduced from the course data within 4.8e-11. Runtime verifies its SHA256 against the audit bundle. Other model coefficients and audit metadata are in `data/model_comparison.json`; historical chart values are in `data/model_fitted.csv` and `data/model_holdout.csv`. No refitting occurs during dashboard interaction.
+
+To deliberately rebuild audited outputs after a model change:
+
+```sh
+uv run python scripts/build_models.py
+```
+
+The script contains reviewed formulas; it does not execute the supplied notebook. Statsmodels is only a development dependency. The original notebook is retained locally in `model_sources/` and excluded from the deployment package.
+
+## Predict and weather
+
+- Predict selects a model and overlays alternatives for the same weather. Final E uses temperature, precipitation, wind, visibility (km), solar energy (MJ/m²), weekday, season, temperature × precipitation and a post-12-Sep-2022 indicator. Monday/Autumn are baselines.
+- The training wind definition remains unconfirmed. Choose daily maximum or mean explicitly. D/E need this choice; earlier models do not. Neither convention is silently assumed.
+- Open-Meteo location is central London (51.5085, -0.1257). Tomorrow through day five excludes today, using the Europe/London date.
+- Hourly API requests use GMT Unix timestamps with coverage padding. Aggregation maps timestamps to London dates and validates every required hour, including DST days.
+- Temperature, humidity, dew point, visibility and cloud use means; precipitation is summed; temperature/wind maxima are retained separately. Hourly shortwave radiation integrates to daily MJ/m².
+- January 1–7, 2026 uses historical reanalysis, supplemented with visibility from the historical forecast archive. This mixed source is labelled. It is not an advance-forecast backtest, and observed January hires are unavailable here.
+- Missing required inputs stop affected model predictions. No input imputation or negative-prediction clipping. Training-range exceedances and negative estimates are flagged. Estimates are point predictions without uncertainty intervals.
+- Forecast cache TTL is one hour; historical TTL is 24 hours. Refresh bypasses TTL. Network errors, 429 and 5xx receive one retry; automated failures have a 60-second cooldown. Matching stale cache retains its original timestamp and is labelled; failed requests never replace valid cache.
+- `.weather_cache/` uses atomic writes with memory fallback. Render's ephemeral filesystem may discard disk cache on restarts. CSV exports include predictions, weather, source, fetch time and wind convention.
+
+References: [Open-Meteo forecast](https://open-meteo.com/en/docs), [historical weather](https://open-meteo.com/en/docs/historical-weather-api), [historical forecast](https://open-meteo.com/en/docs/historical-forecast-api), [Visual Crossing field definitions](https://www2.visualcrossing.com/resources/documentation/weather-data/weather-data-documentation/). Original weather provider provenance still needs confirmation.
+
+## Render
+
+Python Web Service, repository root, Python 3.13.5:
+
+Build: `pip install uv && uv sync --frozen --no-dev`
+
+Start: `uv run --no-sync gunicorn app:server --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120`
+
+Keep all runtime Python modules, coefficient CSV, data files and assets together. This revision has been tested locally; uploading a package alone does not mean a Render deployment succeeded.

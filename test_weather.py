@@ -61,22 +61,24 @@ def test_bad_data_rejected_without_overwriting_cache(tmp_path):
 
 def test_display_download_and_tabs(tmp_path):
     result=WeatherService(tmp_path,sample).get('future',now=NOW)
-    status,table,disabled=show_weather(result,'future')
+    status,table,disabled,*_=show_weather(result,'future')
     assert not disabled
     assert len(table.children[1].children)==5
     assert show_weather(result,'january')[2]
     download=download_weather(1,result,'future')
     assert 'weather_fetched_at' in download['content']
-    assert 'Model pending' in download['content']
-    assert change_page('predict')==({'display':'none'}, {})
+    assert 'predicted_hires_E' in download['content']
+    assert change_page('predict')==({'display':'none'}, {}, {'display':'none'})
 
 def test_retry_and_exact_forecast_window(monkeypatch):
     calls=[]
     dates=period_dates('future',NOW)
     class Response:
+        ok=True
         def raise_for_status(self):pass
         def json(self):
-            return {'daily':{'time':dates.strftime('%Y-%m-%d').tolist(), 'temperature_2m_mean':[12]*5,'relative_humidity_2m_mean':[60]*5,'precipitation_sum':[1]*5,'wind_speed_10m_mean':[10]*5,'cloud_cover_mean':[50]*5}}
+            times=pd.date_range('2026-09-09','2026-09-15',freq='h',inclusive='left',tz='UTC')
+            return {'hourly':{'time':[int(x.timestamp()) for x in times],**{field:[value]*len(times) for field,value in {'temperature_2m':12,'relative_humidity_2m':60,'precipitation':1,'wind_speed_10m':10,'cloud_cover':50,'dew_point_2m':5,'shortwave_radiation':100,'visibility':10000}.items()}}}
     def get(url,params,timeout):
         calls.append(params)
         if len(calls)==1:raise requests.Timeout()
@@ -84,8 +86,8 @@ def test_retry_and_exact_forecast_window(monkeypatch):
     monkeypatch.setattr('open_meteo.requests.get',get)
     assert len(fetch_weather('future',dates))==5
     assert len(calls)==2
-    assert calls[-1]['start_date']=='2026-09-10' and calls[-1]['end_date']=='2026-09-14'
-    assert calls[-1]['timezone']=='Europe/London'
+    assert calls[-1]['start_date']=='2026-09-09' and calls[-1]['end_date']=='2026-09-14'
+    assert calls[-1]['timezone']=='GMT'
 
 def test_predict_http_callback(monkeypatch,tmp_path):
     monkeypatch.setattr('app.weather_service',WeatherService(tmp_path,sample))

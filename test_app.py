@@ -37,7 +37,7 @@ def test_http_layout_and_real_callback():
     client=app.server.test_client()
     for path in ['/','/_dash-layout','/_dash-dependencies','/assets/style.css']:
         assert client.get(path).status_code==200
-    key=next(k for k in app.callback_map if 'average.children' in k)
+    key=next(k for k in app.callback_map if k.startswith('..average.children'))
     outputs=[{'id':o.component_id,'property':o.component_property} for o in app.callback_map[key]['output']]
     resp=client.post('/_dash-update-component',json={'output':key,'outputs':outputs,'inputs':[
         {'id':'dates','property':'start_date','value':'2025-01-01'},

@@ -1,0 +1,434 @@
+{
+  "models": {
+    "Baseline": {
+      "formula": "bikes_hired ~ temp",
+      "change": "Temperature only",
+      "features": [
+        "temp"
+      ],
+      "coefficients": {
+        "Intercept": 15791.232331968282,
+        "temp": 1011.1865053381055
+      },
+      "n": 4381,
+      "parameters": 2,
+      "adj_r2": 0.36238249225721386,
+      "rse": 7321.725723938967,
+      "fit_rmse": 7320.054287842783,
+      "aic": 90404.28385809237,
+      "holdout_rmse": 7330.546177598762,
+      "holdout_mae": 5856.285473942098,
+      "holdout_r2": -0.315201314231881,
+      "holdout_n": 365,
+      "holdout_coefficients": {
+        "Intercept": 15506.564241540043,
+        "temp": 1066.2888633824573
+      }
+    },
+    "A": {
+      "formula": "bikes_hired ~ temp + C(day_of_week)",
+      "change": "+ Day of week",
+      "features": [
+        "temp",
+        "day_of_week"
+      ],
+      "coefficients": {
+        "Intercept": 15429.891789007539,
+        "day_Tue": 2285.834676957112,
+        "day_Wed": 2249.9903790758094,
+        "day_Thu": 2326.9046634364095,
+        "day_Fri": 804.3706163503683,
+        "day_Sat": -1435.0932684725008,
+        "day_Sun": -3620.60199593413,
+        "temp": 1010.0323832137756,
+        "day_Mon": 0.0
+      },
+      "n": 4381,
+      "parameters": 8,
+      "adj_r2": 0.4134688872754352,
+      "rse": 7022.291710640356,
+      "fit_rmse": 7015.877193009714,
+      "aic": 90044.40711325378,
+      "holdout_rmse": 6775.620049945813,
+      "holdout_mae": 5208.266580199925,
+      "holdout_r2": -0.12361532887908866,
+      "holdout_n": 365,
+      "holdout_coefficients": {
+        "Intercept": 15110.56363414226,
+        "day_Tue": 2218.325911364234,
+        "day_Wed": 2177.850664322828,
+        "day_Thu": 2262.0986763338597,
+        "day_Fri": 929.3743875224817,
+        "day_Sat": -1274.377915657872,
+        "day_Sun": -3482.8287692169183,
+        "temp": 1065.4475054476377,
+        "day_Mon": 0.0
+      }
+    },
+    "B": {
+      "formula": "bikes_hired ~ temp + humidity + C(day_of_week)",
+      "change": "+ Humidity",
+      "features": [
+        "temp",
+        "humidity",
+        "day_of_week"
+      ],
+      "coefficients": {
+        "Intercept": 33354.22999490503,
+        "day_Tue": 2381.426545186612,
+        "day_Wed": 2387.7092153554872,
+        "day_Thu": 2384.489086670746,
+        "day_Fri": 788.3728283760965,
+        "day_Sat": -1349.2948635443656,
+        "day_Sun": -3648.566946895204,
+        "temp": 816.8050786251065,
+        "humidity": -201.8568800351661,
+        "day_Mon": 0.0
+      },
+      "n": 4381,
+      "parameters": 9,
+      "adj_r2": 0.4551954501276999,
+      "rse": 6767.896400908871,
+      "fit_rmse": 6760.941095890403,
+      "aic": 89722.09346519965,
+      "holdout_rmse": 7384.291988389221,
+      "holdout_mae": 5910.552924614106,
+      "holdout_r2": -0.3345574952705608,
+      "holdout_n": 365,
+      "holdout_coefficients": {
+        "Intercept": 35468.51123348884,
+        "day_Tue": 2328.7453276593415,
+        "day_Wed": 2315.7672266787517,
+        "day_Thu": 2317.689367458497,
+        "day_Fri": 909.6814515749504,
+        "day_Sat": -1190.1619687761486,
+        "day_Sun": -3530.1436673262456,
+        "temp": 851.6519973025922,
+        "humidity": -229.0169004455675,
+        "day_Mon": 0.0
+      }
+    },
+    "C": {
+      "formula": "bikes_hired ~ temp + humidity + tempmax + dew + C(day_of_week)",
+      "change": "+ Maximum temperature and dew point",
+      "features": [
+        "temp",
+        "humidity",
+        "tempmax",
+        "dew",
+        "day_of_week"
+      ],
+      "coefficients": {
+        "Intercept": 45567.46241138702,
+        "day_Tue": 2206.727023051136,
+        "day_Wed": 2262.8639637735955,
+        "day_Thu": 2245.5741988273276,
+        "day_Fri": 654.2145424657933,
+        "day_Sat": -1456.2672658721874,
+        "day_Sun": -3854.7411469530102,
+        "temp": -2054.8206861292547,
+        "humidity": -356.01612334743595,
+        "tempmax": 1585.9816946838596,
+        "dew": 1231.4238992057099,
+        "day_Mon": 0.0
+      },
+      "n": 4381,
+      "parameters": 11,
+      "adj_r2": 0.49964522377653164,
+      "rse": 6485.931596461314,
+      "fit_rmse": 6477.783903236213,
+      "aic": 89351.22326319042,
+      "holdout_rmse": 7167.89642433528,
+      "holdout_mae": 5771.195247643221,
+      "holdout_r2": -0.257485566192146,
+      "holdout_n": 365,
+      "holdout_coefficients": {
+        "Intercept": 37609.177890936626,
+        "day_Tue": 2146.44595475989,
+        "day_Wed": 2222.227510118274,
+        "day_Thu": 2180.0224268417137,
+        "day_Fri": 794.5821742856463,
+        "day_Sat": -1278.5491125354686,
+        "day_Sun": -3735.1843948284213,
+        "temp": -1547.0984084078307,
+        "humidity": -277.46443010512087,
+        "tempmax": 1588.921426852688,
+        "dew": 732.6870645743045,
+        "day_Mon": 0.0
+      }
+    },
+    "D": {
+      "formula": "bikes_hired ~ temp + humidity + tempmax + dew + precip + C(day_of_week) + windspeed + visibility",
+      "change": "+ Precipitation, wind speed and visibility",
+      "features": [
+        "temp",
+        "humidity",
+        "tempmax",
+        "dew",
+        "precip",
+        "windspeed",
+        "visibility",
+        "day_of_week"
+      ],
+      "coefficients": {
+        "Intercept": 49199.50002909488,
+        "day_Tue": 2239.7696492378586,
+        "day_Wed": 2454.451917987196,
+        "day_Thu": 2450.448344291229,
+        "day_Fri": 789.0581570593303,
+        "day_Sat": -1329.3812585811509,
+        "day_Sun": -3655.4115613655968,
+        "temp": -2161.655323467813,
+        "humidity": -357.6210518150525,
+        "tempmax": 1304.0358029958618,
+        "dew": 1656.600805127169,
+        "precip": -215.9466087299619,
+        "windspeed": -226.56606225116306,
+        "visibility": 173.60809162654724,
+        "day_Mon": 0.0
+      },
+      "n": 4381,
+      "parameters": 14,
+      "adj_r2": 0.5753125974585794,
+      "rse": 5975.41438945439,
+      "fit_rmse": 5965.8591804339685,
+      "aic": 88635.88828802244,
+      "holdout_rmse": 7644.879597384296,
+      "holdout_mae": 6059.419777382196,
+      "holdout_r2": -0.43041108243012194,
+      "holdout_n": 365,
+      "holdout_coefficients": {
+        "Intercept": 39403.01061374317,
+        "day_Tue": 2229.8622333689937,
+        "day_Wed": 2517.616978846158,
+        "day_Thu": 2480.820011782849,
+        "day_Fri": 991.6655895814664,
+        "day_Sat": -1067.3261089037355,
+        "day_Sun": -3494.133255829689,
+        "temp": -1565.0407005851143,
+        "humidity": -260.64501764378963,
+        "tempmax": 1275.7365832316732,
+        "dew": 1100.0028241547066,
+        "precip": -207.9083111112321,
+        "windspeed": -242.9252481794038,
+        "visibility": 198.851857722599,
+        "day_Mon": 0.0
+      }
+    },
+    "E": {
+      "formula": "bikes_hired ~ temp + precip + C(season_name) + C(day_of_week) + windspeed + visibility + solarenergy + temp*precip + post_price_change",
+      "change": "Redesigned: removes humidity, maximum temperature and dew point; adds season, solar energy, temperature \u00d7 precipitation and post-price-change indicator",
+      "features": [
+        "temp",
+        "precip",
+        "windspeed",
+        "visibility",
+        "solarenergy",
+        "temp_precip",
+        "post_price_change",
+        "day_of_week",
+        "season_name"
+      ],
+      "coefficients": {
+        "Intercept": 21677.01565912515,
+        "temp": 656.6985140264349,
+        "precip": -120.37654864556968,
+        "windspeed": -208.1636351755684,
+        "visibility": 127.38705079146791,
+        "solarenergy": 430.7411660722772,
+        "post_price_change": -4405.83003004365,
+        "temp_precip": -21.412296148820104,
+        "day_Mon": 0.0,
+        "day_Tue": 2326.482462237108,
+        "day_Wed": 2510.681154860466,
+        "day_Thu": 2456.1337029515325,
+        "day_Fri": 766.2185694520654,
+        "day_Sat": -1272.1943614914376,
+        "day_Sun": -3573.5760650247335,
+        "season_Autumn": 0.0,
+        "season_Spring": -3742.087570116392,
+        "season_Summer": -2810.9194374805957,
+        "season_Winter": -3480.1166540476324
+      },
+      "n": 4381,
+      "parameters": 17,
+      "adj_r2": 0.6782335215770212,
+      "rse": 5201.202203995304,
+      "fit_rmse": 5191.101042068941,
+      "aic": 87423.03047046838,
+      "holdout_rmse": 5005.415364243921,
+      "holdout_mae": 3803.046071016246,
+      "holdout_r2": 0.3868032969087766,
+      "holdout_n": 365,
+      "holdout_coefficients": {
+        "Intercept": 20782.572639228125,
+        "season_Spring": -3618.014138058641,
+        "season_Summer": -2464.2040348756686,
+        "season_Winter": -3373.4060723456437,
+        "day_Tue": 2294.8952797375914,
+        "day_Wed": 2500.258025230548,
+        "day_Thu": 2433.4506496404465,
+        "day_Fri": 958.4651419916447,
+        "day_Sat": -1078.126857838689,
+        "day_Sun": -3408.1647098564817,
+        "temp": 686.34508199797,
+        "precip": -115.30925096005905,
+        "windspeed": -212.80723364486838,
+        "visibility": 147.70234619286313,
+        "solarenergy": 423.73747613393004,
+        "temp_precip": -21.97849756004556,
+        "post_price_change": -4174.299221545578,
+        "day_Mon": 0.0,
+        "season_Autumn": 0.0
+      },
+      "design_vif": [
+        {
+          "term": "C(season_name)[T.Spring]",
+          "vif": 2.0106311388044817
+        },
+        {
+          "term": "C(season_name)[T.Summer]",
+          "vif": 2.540051055962139
+        },
+        {
+          "term": "C(season_name)[T.Winter]",
+          "vif": 2.1265667198441873
+        },
+        {
+          "term": "C(day_of_week)[T.Tue]",
+          "vif": 1.7148457503068348
+        },
+        {
+          "term": "C(day_of_week)[T.Wed]",
+          "vif": 1.7168824854017295
+        },
+        {
+          "term": "C(day_of_week)[T.Thu]",
+          "vif": 1.7154441709792476
+        },
+        {
+          "term": "C(day_of_week)[T.Fri]",
+          "vif": 1.7153051361027858
+        },
+        {
+          "term": "C(day_of_week)[T.Sat]",
+          "vif": 1.7143763695698915
+        },
+        {
+          "term": "C(day_of_week)[T.Sun]",
+          "vif": 1.7144611097181732
+        },
+        {
+          "term": "temp",
+          "vif": 2.667530907675959
+        },
+        {
+          "term": "precip",
+          "vif": 1.561981168184897
+        },
+        {
+          "term": "windspeed",
+          "vif": 1.1467747104219386
+        },
+        {
+          "term": "visibility",
+          "vif": 1.2070619244311662
+        },
+        {
+          "term": "solarenergy",
+          "vif": 2.3027400920958883
+        },
+        {
+          "term": "temp:precip",
+          "vif": 1.6243436702890983
+        },
+        {
+          "term": "post_price_change",
+          "vif": 1.0977585345978815
+        }
+      ],
+      "notebook_vif": [
+        {
+          "term": "temp",
+          "vif": 1.3582396606285358
+        },
+        {
+          "term": "solarenergy",
+          "vif": 1.4581883234190818
+        },
+        {
+          "term": "precip",
+          "vif": 1.0388844701493203
+        },
+        {
+          "term": "windspeed",
+          "vif": 1.0923490681791634
+        },
+        {
+          "term": "visibility",
+          "vif": 1.1576488942279408
+        }
+      ]
+    }
+  },
+  "sample": {
+    "start": "2014-01-01",
+    "end": "2025-12-31",
+    "n": 4381,
+    "excluded": [
+      {
+        "date": "2022-09-10",
+        "bikes_hired": 0
+      },
+      {
+        "date": "2022-09-11",
+        "bikes_hired": 0
+      }
+    ]
+  },
+  "holdout": {
+    "train_end": "2024-12-31",
+    "test_start": "2025-01-01",
+    "test_end": "2025-12-31",
+    "train_n": 4016,
+    "test_n": 365,
+    "caveat": "Retrospective temporal check: formulas were already selected using 2014\u20132025. This is not an untouched final test. Uses observed weather, not archived advance weather forecasts."
+  },
+  "final_csv_max_abs_difference": 4.729372449219227e-11,
+  "source_sha256": "3c1a06c1dbdf66b85a54eeeab419419ae8719198c867aa4e0b304dad7ce55937",
+  "coefficient_sha256": "925b94f2bce05f8d1c9cd964ed2bfcb45492b74b2f413943db712a76b760e219",
+  "training_ranges": {
+    "temp": {
+      "min": -3.2,
+      "max": 28.3
+    },
+    "humidity": {
+      "min": 39.6,
+      "max": 99.7
+    },
+    "tempmax": {
+      "min": -1.6,
+      "max": 36.1
+    },
+    "dew": {
+      "min": -7.9,
+      "max": 19.0
+    },
+    "precip": {
+      "min": 0.0,
+      "max": 168.196
+    },
+    "windspeed": {
+      "min": 5.1,
+      "max": 72.2
+    },
+    "visibility": {
+      "min": 0.2,
+      "max": 62.5
+    },
+    "solarenergy": {
+      "min": 0.0,
+      "max": 31.0
+    }
+  }
+}

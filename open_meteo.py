@@ -48,37 +48,72 @@ def validate(frame, dates):
     if (frame[['precip','windspeed']] < 0).any().any():
         raise ValueError('Negative precipitation or wind speed')
     frame['day_of_week'] = frame.date.dt.dayofweek.map(dict(enumerate(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'])))
-    return frame[['date','day_of_week',*FIELDS]]
+    extras = [c for c in ['tempmax','dew','solarenergy','visibility','windspeed_max'] if c in frame]
+    for col in extras:
+        frame[col] = pd.to_numeric(frame[col], errors='coerce').replace([np.inf,-np.inf], np.nan)
+    return frame[['date','day_of_week',*FIELDS,*extras]]
 
-def fetch_weather(period, dates):
-    # Fixed central London reference point; identical for history and forecast.
-    params = dict(latitude=51.5085, longitude=-0.1257, timezone='Europe/London',
-                  wind_speed_unit='kmh', temperature_unit='celsius', precipitation_unit='mm',
-                  start_date=dates[0].strftime('%Y-%m-%d'), end_date=dates[-1].strftime('%Y-%m-%d'))
-    history = period == 'january'
-    params['hourly' if history else 'daily'] = ','.join(HOURLY if history else DAILY)
-    url = 'https://archive-api.open-meteo.com/v1/archive' if history else 'https://api.open-meteo.com/v1/forecast'
+def request_json(url, params):
     response = None
     for attempt in range(2):
         try:
-            response = requests.get(url, params=params, timeout=(5,10))
+            response = requests.get(url, params=params, timeout=(5, 12))
+            if not response.ok:
+                LOG.warning("Open-Meteo HTTP %s: %s", response.status_code, response.text[:400])
             response.raise_for_status()
-            break
+            return response.json()
         except requests.RequestException:
-            # Retry a timeout, connection failure, 429 or server error once.
             if attempt or (response is not None and 400 <= response.status_code < 500 and response.status_code != 429):
                 raise
             time.sleep(.3)
-    payload = response.json()
-    block = payload['hourly' if history else 'daily']
-    frame = pd.DataFrame({col:block[field] for field,col in (HOURLY if history else DAILY).items()})
-    frame['date'] = pd.to_datetime(block['time'])
+
+
+def hourly_frame(payload, mapping, dates):
+    block = payload['hourly']
+    frame = pd.DataFrame({col:block[field] for field,col in mapping.items()})
+    # Unix timestamps make London's 23/25-hour DST days unambiguous.
+    frame['instant'] = pd.to_datetime(block['time'], unit='s', utc=True)
+    expected = pd.date_range(dates[0].tz_localize(LONDON), (dates[-1]+pd.Timedelta(days=1)).tz_localize(LONDON), freq='h', inclusive='left').tz_convert(UTC)
+    frame = frame[frame.instant.between(expected[0],expected[-1])].copy()
+    if frame.instant.tolist() != list(expected):
+        raise ValueError('Hourly weather coverage is incomplete')
+    frame['date'] = frame.instant.dt.tz_convert(LONDON).dt.tz_localize(None).dt.normalize()
+    return frame
+
+
+def fetch_weather(period, dates):
+    first=dates[0].tz_localize(LONDON).tz_convert(UTC)
+    last=((dates[-1]+pd.Timedelta(days=1)).tz_localize(LONDON).tz_convert(UTC)-pd.Timedelta(hours=1))
+    params = dict(latitude=51.5085, longitude=-0.1257, timezone='GMT', timeformat='unixtime',
+                  wind_speed_unit='kmh', temperature_unit='celsius', precipitation_unit='mm',
+                  start_date=first.strftime('%Y-%m-%d'), end_date=last.strftime('%Y-%m-%d'))
+    history = period == 'january'
+    mapping = dict(HOURLY, dew_point_2m='dew', shortwave_radiation='radiation')
+    if not history:
+        mapping['visibility'] = 'visibility_m'
+    params['hourly'] = ','.join(mapping)
+    url = 'https://archive-api.open-meteo.com/v1/archive' if history else 'https://api.open-meteo.com/v1/forecast'
+    hours = hourly_frame(request_json(url, params), mapping, dates)
+    if hours[FIELDS].isna().any().any():
+        raise ValueError('Core hourly weather has missing values')
+    frame = hours.groupby('date', as_index=False).agg(
+        temp=('temp','mean'),tempmax=('temp','max'),humidity=('humidity','mean'),
+        precip=('precip','sum'),windspeed=('windspeed','mean'),windspeed_max=('windspeed','max'),
+        cloudcover=('cloudcover','mean'),dew=('dew',lambda s:s.mean(skipna=False)),
+        solarenergy=('radiation',lambda s:s.sum(skipna=False)*.0036))
     if history:
-        expected = pd.date_range(dates[0].tz_localize(LONDON), (dates[-1]+pd.Timedelta(days=1)).tz_localize(LONDON), freq='h', inclusive='left').tz_localize(None)
-        if frame.date.tolist() != list(expected) or frame[FIELDS].isna().any().any():
-            raise ValueError('Historical hourly weather is incomplete')
-        frame['date'] = frame.date.dt.normalize()
-        frame = frame.groupby('date',as_index=False).agg(temp=('temp','mean'),humidity=('humidity','mean'),precip=('precip','sum'),windspeed=('windspeed','mean'),cloudcover=('cloudcover','mean'))
+        try:
+            # Reanalysis does not supply visibility. Supplement only this field
+            # with explicitly labelled archived forecast data; never fabricate it.
+            extra_params = dict(params, hourly='visibility')
+            vis = hourly_frame(request_json('https://historical-forecast-api.open-meteo.com/v1/forecast',extra_params),{'visibility':'visibility_m'},dates)
+            visibility = vis.groupby('date').visibility_m.agg(lambda s:s.mean(skipna=False)/1000)
+        except (requests.RequestException, ValueError, KeyError, TypeError):
+            LOG.warning('Historical visibility supplement unavailable',exc_info=True)
+            visibility = pd.Series(dtype=float)
+    else:
+        visibility = hours.groupby('date').visibility_m.agg(lambda s:s.mean(skipna=False)/1000)
+    frame['visibility'] = frame.date.map(visibility)
     return validate(frame, dates)
 
 class WeatherService:
@@ -118,9 +153,9 @@ class WeatherService:
     def get(self, period, force=False, now=None):
         now = now or datetime.now(UTC)
         dates = period_dates(period,now)
-        key = f'{period}_{dates[0]:%Y-%m-%d}_{dates[-1]:%Y-%m-%d}'
+        key = f'v2_{period}_{dates[0]:%Y-%m-%d}_{dates[-1]:%Y-%m-%d}'
         ttl = 86400 if period=='january' else 3600
-        base = dict(period=period,start=f'{dates[0]:%Y-%m-%d}',end=f'{dates[-1]:%Y-%m-%d}',location='Central London, United Kingdom',timezone='Europe/London')
+        base = dict(period=period,start=f'{dates[0]:%Y-%m-%d}',end=f'{dates[-1]:%Y-%m-%d}',location='Central London, United Kingdom',timezone='Europe/London', weather_source='Open-Meteo reanalysis + archived forecast visibility' if period=='january' else 'Open-Meteo live forecast')
         with self.lock:
             cached = self._read(key,dates)
             fresh = cached and 0 <= (now-datetime.fromisoformat(cached['fetched_at'])).total_seconds() < ttl
@@ -132,7 +167,8 @@ class WeatherService:
             try:
                 frame = validate(self.fetcher(period,dates),dates)
                 frame['date'] = frame.date.dt.strftime('%Y-%m-%d')
-                entry = dict(rows=frame.to_dict('records'),fetched_at=now.astimezone(UTC).isoformat())
+                rows = frame.astype(object).where(pd.notna(frame), None).to_dict('records')
+                entry = dict(rows=rows,fetched_at=now.astimezone(UTC).isoformat())
                 self._write(key,entry)
                 self.failures.pop(key,None)
                 return dict(base,**entry,status='fresh')
