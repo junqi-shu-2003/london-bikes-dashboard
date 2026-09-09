@@ -63,7 +63,7 @@ def request_json(url, params):
             response.raise_for_status()
             return response.json()
         except requests.RequestException:
-            if attempt or (response is not None and 400 <= response.status_code < 500 and response.status_code != 429):
+            if attempt or (response is not None and 400 <= response.status_code < 500 ):
                 raise
             time.sleep(.3)
 
@@ -120,6 +120,7 @@ class WeatherService:
     def __init__(self, cache_dir=None, fetcher=None):
         self.cache_dir = Path(cache_dir or Path(__file__).parent / '.weather_cache')
         self.fetcher = fetcher or fetch_weather
+        self.snapshot = Path(__file__).parent / "data/january_weather.json" if fetcher is None else None
         self.memory = {}
         self.failures = {}
         self.lock = RLock()
@@ -154,15 +155,31 @@ class WeatherService:
         now = now or datetime.now(UTC)
         dates = period_dates(period,now)
         key = f'v2_{period}_{dates[0]:%Y-%m-%d}_{dates[-1]:%Y-%m-%d}'
-        ttl = 86400 if period=='january' else 3600
+        ttl = 10800
         base = dict(period=period,start=f'{dates[0]:%Y-%m-%d}',end=f'{dates[-1]:%Y-%m-%d}',location='Central London, United Kingdom',timezone='Europe/London', weather_source='Open-Meteo reanalysis + archived forecast visibility' if period=='january' else 'Open-Meteo live forecast')
         with self.lock:
+            if period == 'january' and self.snapshot is not None:
+                try:
+                    entry = json.loads(self.snapshot.read_text())
+                    validate(pd.DataFrame(entry['rows']), dates)
+                    return dict(base, **entry, status='snapshot')
+                except (OSError, ValueError, KeyError, TypeError):
+                    LOG.warning('Bundled January weather invalid', exc_info=True)
+                    return dict(base, rows=[], fetched_at=None, status='unavailable', notice='Historical weather file unavailable; contact the dashboard owner.')
             cached = self._read(key,dates)
+            try:
+                block = self.memory.get('forecast_backoff') or json.loads((self.cache_dir/'forecast_backoff.json').read_text())
+                until = datetime.fromisoformat(block['retry_at'])
+                if now < until:
+                    return dict(base, **(cached or {'rows':[], 'fetched_at':None}), status='stale' if cached else 'unavailable', notice=block['notice'], retry_at=block['retry_at'])
+            except (OSError, ValueError, KeyError, TypeError):
+                pass
             fresh = cached and 0 <= (now-datetime.fromisoformat(cached['fetched_at'])).total_seconds() < ttl
             recent_failure = key in self.failures and (now-self.failures[key]).total_seconds() < 60
             if recent_failure and not force:
                 return dict(base,**(cached or {'rows':[],'fetched_at':None}),status='stale' if cached else 'unavailable')
-            if fresh and not force:
+            age = (now-datetime.fromisoformat(cached['fetched_at'])).total_seconds() if cached else float('inf')
+            if fresh and (not force or age < 900):
                 return dict(base,**cached,status='cached')
             try:
                 frame = validate(self.fetcher(period,dates),dates)
@@ -172,9 +189,25 @@ class WeatherService:
                 self._write(key,entry)
                 self.failures.pop(key,None)
                 return dict(base,**entry,status='fresh')
-            except (requests.RequestException,ValueError,KeyError,TypeError,OverflowError):
+            except (requests.RequestException,ValueError,KeyError,TypeError,OverflowError) as exc:
                 LOG.warning('Weather request failed for %s',key,exc_info=True)
                 self.failures[key] = now
-                return dict(base,**(cached or {'rows':[],'fetched_at':None}),status='stale' if cached else 'unavailable')
+                response = getattr(exc, 'response', None)
+                limited = response is not None and response.status_code == 429
+                seconds = 86400 if limited and 'daily' in response.text.lower() else (3600 if limited else 900)
+                if response is not None:
+                    from email.utils import parsedate_to_datetime
+                    retry = response.headers.get('Retry-After')
+                    if retry:
+                        try:
+                            seconds = max(seconds, int(retry))
+                        except ValueError:
+                            try:
+                                seconds = max(seconds, (parsedate_to_datetime(retry)-now).total_seconds())
+                            except (ValueError, TypeError):
+                                pass
+                block = dict(retry_at=(now+timedelta(seconds=seconds)).isoformat(), notice='Weather provider rate limit reached. Requests paused.' if limited else 'Weather update failed. Requests temporarily paused.')
+                self._write('forecast_backoff', block)
+                return dict(base,**(cached or {'rows':[],'fetched_at':None}),status='stale' if cached else 'unavailable', **block)
 
 weather_service = WeatherService()

@@ -10,7 +10,7 @@ uv run python app.py
 uv run pytest -q
 ```
 
-Local URL: http://127.0.0.1:8050/ . The 17 automated tests cover source totals, aggregation, callbacks, all six models against reproduced fitted values, the final coefficient calculation, missing inputs, cache/failure handling and 23/25-hour London days.
+Local URL: http://127.0.0.1:8050/ . The 21 automated tests cover source totals, aggregation, callbacks, all six models against reproduced fitted values, the final coefficient calculation, missing inputs, cache/failure handling and 23/25-hour London days.
 
 ## Explore
 
@@ -41,7 +41,7 @@ The script contains reviewed formulas; it does not execute the supplied notebook
 - Temperature, humidity, dew point, visibility and cloud use means; precipitation is summed; temperature/wind maxima are retained separately. Hourly shortwave radiation integrates to daily MJ/m².
 - January 1–7, 2026 uses historical reanalysis, supplemented with visibility from the historical forecast archive. This mixed source is labelled. It is not an advance-forecast backtest, and observed January hires are unavailable here.
 - Missing required inputs stop affected model predictions. No input imputation or negative-prediction clipping. Training-range exceedances and negative estimates are flagged. Estimates are point predictions without uncertainty intervals.
-- Forecast cache TTL is one hour; historical TTL is 24 hours. Refresh bypasses TTL. Network errors, 429 and 5xx receive one retry; automated failures have a 60-second cooldown. Matching stale cache retains its original timestamp and is labelled; failed requests never replace valid cache.
+- January loads the validated bundled data/january_weather.json with its original fetch timestamp and never requests the API during page use. Forecast cache TTL is three hours. Manual refresh has a 15-minute minimum interval. HTTP 429 is not immediately retried; daily quota errors pause requests for 24 hours, other 429 errors for one hour, and other failures for 15 minutes. Longer Retry-After values are respected. Cooldown applies to manual refresh too and is saved alongside the cache. Render ephemeral storage may lose forecast cache and cooldown state on restarts; January survives as a bundled file. Matching stale cache retains its original timestamp and is labelled; failed requests never replace valid cache.
 - `.weather_cache/` uses atomic writes with memory fallback. Render's ephemeral filesystem may discard disk cache on restarts. CSV exports include predictions, weather, source, fetch time and wind convention.
 
 References: [Open-Meteo forecast](https://open-meteo.com/en/docs), [historical weather](https://open-meteo.com/en/docs/historical-weather-api), [historical forecast](https://open-meteo.com/en/docs/historical-forecast-api), [Visual Crossing field definitions](https://www2.visualcrossing.com/resources/documentation/weather-data/weather-data-documentation/). Original weather provider provenance still needs confirmation.

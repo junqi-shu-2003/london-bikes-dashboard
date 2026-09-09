@@ -1,0 +1,103 @@
+{
+  "rows": [
+    {
+      "date": "2026-01-01",
+      "day_of_week": "Thu",
+      "temp": 2.9125,
+      "humidity": 82.95833333333333,
+      "precip": 0.0,
+      "windspeed": 14.670833333333334,
+      "cloudcover": 73.58333333333333,
+      "tempmax": 5.7,
+      "dew": 0.24583333333333335,
+      "solarenergy": 3.348,
+      "visibility": 17.593333333333334,
+      "windspeed_max": 17.3
+    },
+    {
+      "date": "2026-01-02",
+      "day_of_week": "Fri",
+      "temp": 1.6416666666666666,
+      "humidity": 77.41666666666667,
+      "precip": 0.4,
+      "windspeed": 12.299999999999999,
+      "cloudcover": 22.25,
+      "tempmax": 3.4,
+      "dew": -2.0375,
+      "solarenergy": 4.2444,
+      "visibility": 20.79,
+      "windspeed_max": 16.1
+    },
+    {
+      "date": "2026-01-03",
+      "day_of_week": "Sat",
+      "temp": 0.30416666666666664,
+      "humidity": 73.04166666666667,
+      "precip": 0.0,
+      "windspeed": 12.570833333333333,
+      "cloudcover": 1.2916666666666667,
+      "tempmax": 2.3,
+      "dew": -4.0625,
+      "solarenergy": 4.3271999999999995,
+      "visibility": 23.718333333333334,
+      "windspeed_max": 15.1
+    },
+    {
+      "date": "2026-01-04",
+      "day_of_week": "Sun",
+      "temp": -0.9958333333333332,
+      "humidity": 77.41666666666667,
+      "precip": 0.0,
+      "windspeed": 9.320833333333333,
+      "cloudcover": 12.75,
+      "tempmax": 1.7,
+      "dew": -4.5,
+      "solarenergy": 4.3595999999999995,
+      "visibility": 17.03833333333333,
+      "windspeed_max": 11.0
+    },
+    {
+      "date": "2026-01-05",
+      "day_of_week": "Mon",
+      "temp": -1.3375000000000001,
+      "humidity": 80.91666666666667,
+      "precip": 0.0,
+      "windspeed": 8.700000000000001,
+      "cloudcover": 18.791666666666668,
+      "tempmax": 1.3,
+      "dew": -4.2875000000000005,
+      "solarenergy": 4.4315999999999995,
+      "visibility": 17.304166666666667,
+      "windspeed_max": 10.6
+    },
+    {
+      "date": "2026-01-06",
+      "day_of_week": "Tue",
+      "temp": -0.9333333333333332,
+      "humidity": 84.83333333333333,
+      "precip": 1.4000000000000001,
+      "windspeed": 10.975,
+      "cloudcover": 63.833333333333336,
+      "tempmax": 3.6,
+      "dew": -3.1916666666666664,
+      "solarenergy": 2.0268,
+      "visibility": 11.775833333333335,
+      "windspeed_max": 19.8
+    },
+    {
+      "date": "2026-01-07",
+      "day_of_week": "Wed",
+      "temp": 2.9125,
+      "humidity": 83.54166666666667,
+      "precip": 6.8,
+      "windspeed": 13.075000000000001,
+      "cloudcover": 49.333333333333336,
+      "tempmax": 5.5,
+      "dew": 0.27499999999999997,
+      "solarenergy": 4.3164,
+      "visibility": 13.3475,
+      "windspeed_max": 16.8
+    }
+  ],
+  "fetched_at": "2026-09-09T20:25:01.345691+00:00"
+}

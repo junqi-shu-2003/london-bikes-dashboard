@@ -27,11 +27,11 @@ def test_cache_persistence_expiry_and_force(tmp_path):
     assert svc.get('future',now=NOW+timedelta(minutes=20))['status']=='cached'
     assert len(calls)==1
     assert WeatherService(tmp_path,fetch).get('future',now=NOW+timedelta(minutes=30))['status']=='cached'
-    assert svc.get('future',now=NOW+timedelta(hours=1))['status']=='fresh'
-    assert svc.get('future',force=True,now=NOW+timedelta(hours=1,minutes=1))['status']=='fresh'
+    assert svc.get('future',now=NOW+timedelta(hours=3))['status']=='fresh'
+    assert svc.get('future',force=True,now=NOW+timedelta(hours=3,minutes=16))['status']=='fresh'
     assert len(calls)==3
     svc.get('january',now=NOW)
-    assert svc.get('january',now=NOW+timedelta(hours=23))['status']=='cached'
+    assert svc.get('january',now=NOW+timedelta(hours=2))['status']=='cached'
     assert svc.get('january',now=NOW+timedelta(hours=24))['status']=='fresh'
 
 def test_failure_fallback_and_midnight(tmp_path):
@@ -39,10 +39,10 @@ def test_failure_fallback_and_midnight(tmp_path):
     good=svc.get('future',now=NOW)
     def fail(*args):raise requests.Timeout('test outage')
     svc.fetcher=fail
-    result=svc.get('future',force=True,now=NOW+timedelta(minutes=1))
+    result=svc.get('future',force=True,now=NOW+timedelta(minutes=16))
     assert result['status']=='stale' and result['rows']==good['rows']
     assert result['fetched_at']==good['fetched_at']
-    assert svc.get('future',now=NOW+timedelta(minutes=1,seconds=10))['status']=='stale'
+    assert svc.get('future',now=NOW+timedelta(minutes=16,seconds=10))['status']=='stale'
     # Previous window must not be returned for a different London date.
     assert svc.get('future',now=NOW+timedelta(days=1))['status']=='unavailable'
     empty=WeatherService(tmp_path/'empty',fail).get('january',now=NOW)
@@ -97,3 +97,46 @@ def test_predict_http_callback(monkeypatch,tmp_path):
         'state':[],'changedPropIds':['page.value']})
     assert response.status_code==200
     assert len(response.json['response']['weather-result']['data']['rows'])==7
+
+def test_bundled_january_offline(tmp_path,monkeypatch):
+    def forbidden(*args,**kwargs):raise AssertionError('No network allowed')
+    monkeypatch.setattr('open_meteo.requests.get',forbidden)
+    result=WeatherService(tmp_path).get('january',force=True,now=NOW)
+    assert result['status']=='snapshot' and len(result['rows'])==7
+    assert all(row['visibility'] is not None for row in result['rows'])
+    assert not show_weather(result,'january','E','maximum')[2]
+
+def test_daily_limit_persisted_and_not_bypassed(tmp_path):
+    calls=[]
+    def limited(*args):
+        calls.append(1)
+        r=requests.Response();r.status_code=429;r._content=b'{"reason":"Daily API request limit exceeded"}'
+        raise requests.HTTPError(response=r)
+    svc=WeatherService(tmp_path,limited)
+    first=svc.get('future',now=NOW)
+    assert first['status']=='unavailable' and 'rate limit' in first['notice']
+    assert datetime.fromisoformat(first['retry_at'])==NOW+timedelta(days=1)
+    svc.get('future',force=True,now=NOW+timedelta(hours=1))
+    WeatherService(tmp_path,limited).get('future',force=True,now=NOW+timedelta(hours=2))
+    assert len(calls)==1
+
+def test_manual_refresh_cooldown(tmp_path):
+    calls=[]
+    def fetch(p,d):calls.append(1);return sample(p,d)
+    svc=WeatherService(tmp_path,fetch)
+    svc.get('future',now=NOW)
+    assert svc.get('future',force=True,now=NOW+timedelta(minutes=14))['status']=='cached'
+    assert len(calls)==1
+    assert svc.get('future',force=True,now=NOW+timedelta(minutes=15))['status']=='fresh'
+    assert len(calls)==2
+
+def test_429_not_immediately_retried(monkeypatch):
+    from open_meteo import request_json
+    calls=[]
+    def get(*args,**kwargs):
+        calls.append(1)
+        r=requests.Response();r.status_code=429;r._content=b'Daily API request limit exceeded'
+        return r
+    monkeypatch.setattr('open_meteo.requests.get',get)
+    with pytest.raises(requests.HTTPError):request_json('https://example.test',{})
+    assert len(calls)==1
